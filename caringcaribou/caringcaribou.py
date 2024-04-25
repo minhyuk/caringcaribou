@@ -13,7 +13,7 @@ VERSION = "0.4"
 
 
 def show_script_header():
-    """Show script header"""
+    """Prints the script header information, including version."""
     print(r"""
 {0}
 CARING CARIBOU v{1}
@@ -23,13 +23,13 @@ CARING CARIBOU v{1}
 
 def fancy_header():
     """
-    Returns a fancy header string.
-
+    Generates and returns a fancy ASCII art header string that includes the version number of the Caribou tool.
+    
     :rtype: str
     """
     return r"""{0}
 CARING CARIBOU v{1}
-\_\_    _/_/
+__    _/\/
     \__/
     (oo)\_______
     (__)\       )\/
@@ -41,6 +41,12 @@ CARING CARIBOU v{1}
 
 
 def available_modules_dict():
+    """
+    Scans for entry points defined in 'caringcaribou.modules' to populate a dictionary of available modules.
+    
+    :return: A dictionary where keys are module names (nicenames) and values are entry point objects.
+    :rtype: dict
+    """
     available_modules = dict()
     for entry_point in pkg_resources.iter_entry_points("caringcaribou.modules"):
         nicename = str(entry_point).split("=")[0].strip()
@@ -50,10 +56,9 @@ def available_modules_dict():
 
 def available_modules():
     """
-    Get a string showing available CaringCaribou modules.
-    Modules are listed in setup.py: entry_points['caringcaribou.modules']
-
-    :return: A string listing available modules
+    Returns a string listing all the available modules as defined in the project's setup.py entry points.
+    
+    :return: A string listing available modules, sorted alphabetically.
     :rtype: str
     """
     modules = list(available_modules_dict().keys())
@@ -66,9 +71,9 @@ def available_modules():
 
 def parse_arguments():
     """
-    Argument parser for interface, module name and module arguments.
-
-    :return: Namespace containing module name and arguments
+    Parses command-line arguments to determine the interface, module name, and additional module arguments.
+    
+    :return: A Namespace object containing the parsed arguments including the module name and its arguments.
     :rtype: argparse.Namespace
     """
     parser = argparse.ArgumentParser(description="{0}A friendly car security exploration tool".format(fancy_header()),
@@ -86,11 +91,10 @@ def parse_arguments():
 
 def load_module(module_name):
     """
-    Dynamically imports module_name from the folder specified by MODULES_DIR.
-
-    :param str module_name: Name of the module to import as referenced in entry_points
-                            e.g. "dcm", "uds", "listener"
-    :return: a module on success, None otherwise
+    Attempts to dynamically load a module by name, where the name refers to one listed in the available_modules_dict.
+    
+    :param str module_name: The name (as a string) of the module to be loaded.
+    :return: The loaded module object if successful, None if the module does not exist.
     """
     try:
         print("Loading module '{0}'\n".format(module_name))
@@ -102,7 +106,7 @@ def load_module(module_name):
 
 
 def main():
-    """Main execution handler"""
+    """Acts as the entry point of the program; it parses arguments, displays the header, sets up the interface, and initiates the loaded module."""
     # Parse and validate arguments
     args = parse_arguments()
     # Show header

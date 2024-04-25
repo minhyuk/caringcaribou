@@ -15,7 +15,7 @@ MIN_DATA_LENGTH = 1
 MAX_DATA_LENGTH = 8
 # Max size of random seed if no seed is provided in arguments
 DEFAULT_SEED_MAX = 2 ** 16
-# Number of sub-lists to split message list into per round in 'replay' mode
+# Number of sub-lists to split message list into per round in &#x27;replay&#x27; mode
 REPLAY_NUMBER_OF_SUB_LISTS = 5
 BYTE_MIN = 0x00
 BYTE_MAX = 0xFF
@@ -23,6 +23,9 @@ BYTE_MAX = 0xFF
 
 # Duplicate testing from https://www.iditect.com/guide/python/python_howto_find_the_duplicates_in_a_list.html
 def find_duplicates(sequence):
+    """
+    Identifies and returns a set of duplicate elements in the given sequence.
+    """
     first_seen = set()
     first_seen_add = first_seen.add
     duplicates = set(i for i in sequence if i in first_seen or first_seen_add(i))
@@ -30,7 +33,11 @@ def find_duplicates(sequence):
 
 
 def seed_randomness_fuzzer(args):
-    """Wrapper used to initiate security randomness fuzzer"""
+    """
+    Initiates a fuzzing process for testing the randomness of security seeds response from an ECU.
+    This process involves repeated resetting of the ECU, session control, and requesting security seeds
+    to evaluate the randomness and potential vulnerabilities in the ECU's security implementation.
+    """
     arb_id_request = args.src
     arb_id_response = args.dst
     reset_type = args.reset
@@ -111,7 +118,11 @@ def seed_randomness_fuzzer(args):
 
 
 def delay_fuzzer(args):
-    """Wrapper used to initiate delay fuzzer"""
+    """
+    Conducts a fuzzing operation focused on varying the delay between security seed request messages
+    to identify potential weaknesses in the ECU's seed generation mechanism, aiming to hit a specific
+    target seed value through this variation.
+    """
     arb_id_request = args.src
     arb_id_response = args.dst
     reset_type = args.reset
@@ -194,6 +205,9 @@ def delay_fuzzer(args):
 
 
 def str_to_hex(i, session_type):
+    """
+    Converts a substring of session_type specification starting from index i with a length of 4 into its hexadecimal representation.
+    """
     max_index = i + 3
     if len(session_type) >= max_index:
         session = []
@@ -208,7 +222,9 @@ def str_to_hex(i, session_type):
 
 
 def __parse_args(args):
-    """Parser for module arguments"""
+    """
+    Parses command-line arguments for initiating the UDS fuzzing and testing modules.
+    """
     parser = argparse.ArgumentParser(
         prog="cc.py uds_fuzz",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -317,9 +333,13 @@ def __parse_args(args):
 
 
 def module_main(arg_list):
-    """Module main wrapper"""
+    """
+    Main function for the UDS fuzzing and testing module. It processes command-line arguments
+    and invokes the specified fuzzing function with those arguments.
+    """
     try:
         args = __parse_args(arg_list)
         args.func(args)
     except KeyboardInterrupt:
         print("\n\nTerminated by user")
+

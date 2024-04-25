@@ -18,9 +18,14 @@ class CanMessage:
 
     def __init__(self, arb_id, data, delay, is_extended=None, is_error=False, is_remote=False):
         """
-        :param arb_id: int - arbitration ID
-        :param data: list of ints - data bytes
-        :param delay: float - delay in seconds
+        Initialize a new CAN message with given parameters.
+
+        :param arb_id: int - The arbitration ID of the CAN message.
+        :param data: list of int - The data bytes of the CAN message.
+        :param delay: float - The delay in seconds before this message should be sent.
+        :param is_extended: bool or None - Specifies if this message uses extended arbitration ID.
+        :param is_error: bool - Indicates if this is an error message.
+        :param is_remote: bool - Indicates if this message is a remote transmission request.
         """
         self.arb_id = arb_id
         self.data = data
@@ -36,12 +41,12 @@ class CanMessage:
 
 def parse_messages(msgs, delay, pad):
     """
-    Parses a list of message strings.
+    Parses a list of message strings into CanMessage objects.
 
-    :param delay: Delay between each message
-    :param msgs: list of message strings
-    :param pad: bool indicating whether messages should be padded to 8 bytes
-    :return: list of CanMessage instances
+    :param msgs: List of str - Messages in the format 'ARBITRATION_ID#DATA'.
+    :param delay: float - Delay to be applied to each message.
+    :param pad: bool - Indicates whether messages should be padded to 8 bytes.
+    :return: list of CanMessage instances created from the input strings.
     """
     message_list = []
     msg = None
@@ -79,13 +84,12 @@ def parse_messages(msgs, delay, pad):
 
 def parse_candump_line(curr_line, prev_timestamp, force_delay):
     """
-    Parses a line on candump log format, e.g.
-    (1499197954.029156) can0 123#c0ffee
+    Parses a line from a candump log file into a CanMessage object.
 
-    :param curr_line: str to parse
-    :param prev_timestamp: datetime timestamp of previous message (to calculate delay)
-    :param force_delay: float value to override delay or None to use calculated delay
-    :return: CanMessage representing 'curr_line', datetime.datetime timestamp of 'curr_line'
+    :param curr_line: str - The current line from the candump log.
+    :param prev_timestamp: float or None - The timestamp of the previous message (for delay calculation).
+    :param force_delay: float or None - If set, overrides calculated delay with this value.
+    :return: A tuple containing the CanMessage and the timestamp of the current message.
     """
     segments = curr_line.strip().split(" ")
     time_stamp = float(segments[0][1:-1])
@@ -104,12 +108,12 @@ def parse_candump_line(curr_line, prev_timestamp, force_delay):
 
 def parse_pythoncan_line(curr_line, prev_timestamp, force_delay):
     """
-    Parses a line on python-can log format (which differs between versions)
+    Parses a line from a python-can log format into a CanMessage object.
 
-    :param curr_line: str to parse
-    :param prev_timestamp: datetime timestamp of previous message (to calculate delay)
-    :param force_delay: float value to override delay or None to use calculated delay
-    :return: CanMessage representing 'curr_line', datetime.datetime timestamp of 'curr_line'
+    :param curr_line: str - The current line from a python-can log.
+    :param prev_timestamp: float or None - The timestamp of the previous message (for delay calculation).
+    :param force_delay: float or None - If set, overrides calculated delay with this value.
+    :return: A tuple containing the CanMessage and the timestamp of the current message.
     """
     line_regex = re.compile(r"Timestamp: +(?P<timestamp>\d+\.\d+) +ID: (?P<arb_id>[0-9a-fA-F]+) +"
                             r"((\d+)|(?P<is_extended>[SX]) (?P<is_error>[E ]) (?P<is_remote>[R ])) +"
@@ -134,13 +138,12 @@ def parse_pythoncan_line(curr_line, prev_timestamp, force_delay):
 
 def parse_file(filename, force_delay):
     """
-    Parses a file containing CAN traffic logs.
+    Parses a log file containing CAN messages in either candump or python-can format.
 
-    :param filename: Path to file
-    :param force_delay: Delay value between each message (if omitted, the delays specified by log file are used)
-    :return: list of CanMessage instances
+    :param filename: str - The path to the log file containing the CAN traffic.
+    :param force_delay: float - A fixed delay between messages; if not provided, uses delays from log file.
+    :return: A list of CanMessage objects parsed from the file.
     """
-
     try:
         messages = []
         with open(filename, "r") as f:
@@ -172,10 +175,10 @@ def parse_file(filename, force_delay):
 
 def send_messages(messages, loop):
     """
-    Sends a list of messages separated by a given delay.
+    Sends a list of CanMessage objects with the specified delays between them.
 
-    :param loop: bool indicating whether the message sequence should be looped (re-sent over and over)
-    :param messages: List of messages, where a message has the format (arb_id, [data_byte])
+    :param messages: List of CanMessage - The messages to be sent.
+    :param loop: bool - Whether to continuously loop through the messages list and send messages.
     """
     with CanActions(notifier_enabled=False) as can_wrap:
         loop_counter = 0
@@ -193,10 +196,10 @@ def send_messages(messages, loop):
 
 def __handle_parse_messages(args):
     """
-    Wrapper for parsing message strings
+    Handles the 'message' subcommand to parse message strings from command line arguments.
 
-    :param args: argument namespace
-    :return: list of CAN messages
+    :param args: argparse.Namespace - The namespace object containing command line arguments.
+    :return: list of CanMessage instances parsed from the command line arguments.
     """
     message_strings = args.msg
     delay = args.delay
@@ -207,10 +210,10 @@ def __handle_parse_messages(args):
 
 def __handle_parse_file(args):
     """
-    Wrapper for parsing a file containing messages
+    Handles the 'file' subcommand to parse messages from a file.
 
-    :param args: argument namespace
-    :return: list of CAN messages
+    :param args: argparse.Namespace - The namespace object containing command line arguments.
+    :return: list of CanMessage instances parsed from the file.
     """
     filename = args.filename
     delay = args.delay
@@ -220,18 +223,17 @@ def __handle_parse_file(args):
 
 def parse_args(args):
     """
-    Argument parser for the send module.
+    Parses the arguments passed to the send module.
 
-    :param args: List of arguments
-    :return: Argument namespace
-    :rtype: argparse.Namespace
+    :param args: list of str - The list of arguments passed from the command line.
+    :return: argparse.Namespace object containing the parsed arguments.
     """
     parser = argparse.ArgumentParser(prog="cc.py send",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description="Raw message transmission module for CaringCaribou.\n"
                                                  "Messages can be passed as command line arguments or through a file.",
                                      epilog="""Example usage:
-  cc.py send message 0x7a0#c0.ff.ee.00.11.22.33.44
+  cc.py send message 0x7a0#c0ffee.00.11.22.33.44
   cc.py send message -d 0.5 123#de.ad.be.ef 124#01.23.45
   cc.py send message -p 0x100#11 0x100#22.33
   cc.py send file can_dump.txt
@@ -265,9 +267,10 @@ def parse_args(args):
 
 def module_main(args):
     """
-    Send module main wrapper.
+    Main function for the send module.
 
-    :param args: List of module arguments
+    :param args: list of str - The list of arguments for the module.
+    Executes the module based on parsed arguments and sends CAN messages as specified.
     """
     args = parse_args(args)
     print("Parsing messages")

@@ -18,6 +18,12 @@ class MockEcuIsoTp(MockEcu):
     MOCK_MULTI_FRAME_LONG_MESSAGE_RESPONSE = list(range(0, 34))
 
     def __init__(self, arb_id_request, arb_id_response, bus=None):
+        """Initializes the mock ECU with ISO-TP protocol.
+
+        :param arb_id_request: Arbitration ID for requests.
+        :param arb_id_response: Arbitration ID for responses.
+        :param bus: CAN bus instance (optional).
+        """
         MockEcu.__init__(self, bus)
         self.ARBITRATION_ID_REQUEST = arb_id_request
         self.ARBITRATION_ID_RESPONSE = arb_id_response
@@ -99,3 +105,4 @@ class MockEcuIsoTp(MockEcu):
             self.iso_tp.send_response(self.MOCK_MULTI_FRAME_LONG_MESSAGE_RESPONSE)
         else:
             print("Unmapped message in {0}.message_handler:\n  {1}".format(self.__class__.__name__, data))
+

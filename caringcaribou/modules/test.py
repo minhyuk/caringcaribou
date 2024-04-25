@@ -12,8 +12,12 @@ def print_interface_header():
 
 
 def module_main(_):
-    """Runs all Caring Caribou unit tests"""
+    """Runs all Caring Caribou unit tests.
+    
+    It first prints the CAN interface being used and then
+    executes all the unit tests found in the CaringCaribou tests module."""
     print_interface_header()
     # Run tests
     test_suite = unittest.TestLoader().loadTestsFromModule(caringcaribou.tests)
     unittest.TextTestRunner(verbosity=2).run(test_suite)
+
