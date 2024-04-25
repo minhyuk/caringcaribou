@@ -11,7 +11,8 @@ from setuptools import find_packages, setup
 version = "0.4"
 dl_version = "master" if "dev" in version else "v{}".format(version)
 
-print(r"""-----------------------------------
+print(r"""
+-----------------------------------
  Installing Caring Caribou version {0}
 -----------------------------------
 """.format(version))
@@ -53,7 +54,9 @@ setup(
     }
 )
 
-print(r"""-----------------------------------------------------------
+print(r"""
+-----------------------------------------------------------
  Installation completed, run `cc.py --help` to get started
 -----------------------------------------------------------
 """)
+

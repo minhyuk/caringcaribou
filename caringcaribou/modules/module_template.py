@@ -32,9 +32,10 @@ from caringcaribou.utils.common import list_to_hex_str, parse_int_dec_or_hex
 
 def do_stuff(my_arbitration_id):
     """
-    Performs some example operations, such as sending and receiving CAN messages.
+    This function performs operations such as sending and receiving CAN messages using a specified arbitration ID.
+    It demonstrates how to send messages, both with a default and a custom arbitration ID, and how to listen and respond to incoming messages.
 
-    :param my_arbitration_id: The default arbitration id to use when sending messages
+    :param my_arbitration_id: The arbitration ID to be used for sending messages. It's an identifier for CAN messages in the network.
     :type my_arbitration_id: int
     """
     # The notifier should only be enabled when handling incoming traffic using callbacks
@@ -75,10 +76,10 @@ def do_stuff(my_arbitration_id):
 
 def parse_args(args):
     """
-    Argument parser for the template module.
+    Parses the command-line arguments provided to this module. It expects arguments related to the CAN operation, such as the arbitration ID.
 
-    :param args: List of arguments
-    :return: Argument namespace
+    :param args: Command-line arguments
+    :return: The parsed arguments with the arbitration ID ready to use.
     :rtype: argparse.Namespace
     """
     parser = argparse.ArgumentParser(prog="cc.py module_template",
@@ -96,9 +97,9 @@ def parse_args(args):
 
 def module_main(arg_list):
     """
-    Module main wrapper. This is the entry point of the module when called by cc.py
+    This function serves as the entry point for this module when run through the cc.py tool. It processes the command-line arguments and initiates the main workflow by calling do_stuff.
 
-    :param arg_list: Module argument list passed by cc.py
+    :param arg_list: A list of arguments provided to this module via the command line.
     """
     try:
         # Parse arguments

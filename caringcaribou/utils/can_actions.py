@@ -70,10 +70,13 @@ class CanActions:
 
     def __init__(self, arb_id=None, notifier_enabled=True):
         """
-        CanActions constructor
+        Initializes the CanActions class instance.
 
-        :param arb_id: int default arbitration ID for object or None
-        :param notifier_enabled: bool indicating whether a notifier for incoming message callbacks should be enabled
+        This constructor sets the CAN bus interface and the optional default arbitration ID,
+        and optionally enables CAN message notifications.
+
+        :param arb_id: Optional; An integer specifying the default arbitration ID to be used by the instance.
+        :param notifier_enabled: Optional; A boolean that specifies whether to enable the notification listener for incoming CAN messages.
         """
         self.bus = can.Bus(context=DEFAULT_INTERFACE)
         self.arb_id = arb_id
@@ -83,33 +86,54 @@ class CanActions:
             self.enable_notifier()
 
     def __enter__(self):
+        """Enter context manager method, enabling use with the 'with' statement."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager method, disables the notifier and shuts down the CAN bus upon exiting the 'with' block."""
         if self.notifier is not None:
             self.disable_notifier()
         self.bus.shutdown()
 
     def enable_notifier(self):
+        """Enables the CAN message notifier with no listeners."""
         self.notifier = can.Notifier(self.bus, listeners=[])
 
     def disable_notifier(self):
+        """Disables the CAN message notifier, clearing listeners and stopping it gracefully."""
         self.clear_listeners()
         # Prevent threading errors by stopping notifier gracefully
         self.notifier.stop(NOTIFIER_STOP_DURATION)
         self.notifier = None
 
     def add_listener(self, listener):
+        """Adds a listener to the notifier.
+
+        :param listener: The listener to add, typically a function that processes incoming CAN messages.
+        """
         self.notifier.listeners.append(listener)
 
     def clear_listeners(self):
+        """Clears all listeners from the notifier."""
         self.notifier.listeners = []
 
     def set_listener(self, listener):
+        """Sets the specified listener as the sole listener for incoming CAN messages.
+
+        :param listener: The listener to set, typically a function that processes incoming CAN messages.
+        """
         self.clear_listeners()
         self.add_listener(listener)
 
     def send(self, data, arb_id=None, is_extended=None, is_error=False, is_remote=False):
+        """Sends a CAN message with the specified parameters and payload.
+
+        :param data: The data payload of the CAN message as a bytearray.
+        :param arb_id: Optional; The arbitration ID of the CAN message. Defaults to the instance's arb_id if not specified.
+        :param is_extended: Optional; Boolean to indicate if the message uses extended arbitration ID. Determined automatically if not specified.
+        :param is_error: Optional; Boolean to indicate if the message is an error frame.
+        :param is_remote: Optional; Boolean to indicate if the message is a remote frame.
+        """
         if len(data) > 8:
             raise IndexError("Invalid CAN message length: {0}".format(len(data)))
         # Fallback to default arbitration ID (self.arb_id) if no other ID is specified
@@ -129,6 +153,14 @@ class CanActions:
 
     def bruteforce_arbitration_id(self, data, callback, min_id, max_id,
                                   callback_end=None):
+        """Bruteforce CAN arbitration IDs within the specified range, sending data and executing the callback for each.
+
+        :param data: The data payload to send with each CAN message.
+        :param callback: The callback function to execute for each arbitration ID.
+        :param min_id: The minimum arbitration ID to start brute-forcing from.
+        :param max_id: The maximum arbitration ID to brute-force up to.
+        :param callback_end: Optional; The function to call when the bruteforce operation completes.
+        """
         # Set limits
         if min_id is None:
             min_id = ARBITRATION_ID_MIN
@@ -165,6 +197,15 @@ class CanActions:
 
     def bruteforce_data(self, data, bruteforce_index, callback, min_value=BYTE_MIN, max_value=BYTE_MAX,
                         callback_end=None):
+        """Bruteforces the value of one byte in the data payload, sending each mutated message and executing a callback.
+
+        :param data: The data payload of the CAN message as a bytearray.
+        :param bruteforce_index: The index of the byte within the data payload to bruteforce.
+        :param callback: The function to call for each bruteforced value.
+        :param min_value: The minimum value of the byte to start bruteforcing from.
+        :param max_value: The maximum value of the byte to bruteforce up to.
+        :param callback_end: Optional; The function to call when the bruteforce operation is completed.
+        """
         self.bruteforce_running = True
         for value in range(min_value, max_value + 1):
             self.notifier.listeners = [callback(value)]
@@ -181,6 +222,15 @@ class CanActions:
     def bruteforce_data_new(self, data, bruteforce_indices, callback,
                             min_value=BYTE_MIN, max_value=BYTE_MAX,
                             callback_done=None):
+        """Bruteforces multiple data bytes within a CAN message payload, sending modified messages and executing callbacks.
+
+        :param data: The data payload of the CAN message as a bytearray.
+        :param bruteforce_indices: A list of byte indices within the data payload to bruteforce.
+        :param callback: The function to call for each unique data mutation.
+        :param min_value: The minimum value for each bruteforced byte.
+        :param max_value: The maximum value for each bruteforced byte.
+        :param callback_done: Optional; The function to call when the bruteforce operation completes.
+        """
         def send(msg_data, idxs):
             self.notifier.listeners = [callback(["{0:02x}".format(msg_data[a]) for a in idxs])]
             self.send(msg_data)
@@ -208,8 +258,15 @@ class CanActions:
             callback_done("Scan finished")
 
     def send_single_message_with_callback(self, data, callback):
+        """Sends a single CAN message and sets a listener for the response.
+
+        :param data: The data payload of the CAN message as a bytearray.
+        :param callback: The listener function to process the response to the sent message.
+        """
         self.set_listener(callback)
         self.send(data)
 
     def bruteforce_stop(self):
+        """Stops any ongoing bruteforce operation immediately."""
         self.bruteforce_running = False
+

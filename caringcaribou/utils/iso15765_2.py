@@ -35,16 +35,21 @@ class IsoTp:
     MAX_MESSAGE_LENGTH = 4095
 
     def __init__(self, arb_id_request, arb_id_response, bus=None, padding_value=0x00):
-        # Setting default bus to None rather than the actual bus prevents a CanError when
-        # called with a virtual CAN bus, while the OS is lacking a working CAN interface
+        """
+        Initializes the IsoTp object with arbitration IDs for request and response, an optional CAN bus object,
+        and an optional padding value for message frames.
+
+        :param arb_id_request: Arbitration ID for request messages.
+        :param arb_id_response: Arbitration ID for response messages.
+        :param bus: (Optional) CAN bus object to use for message transmission and reception.
+        :param padding_value: (Optional) Value used to pad send frames. Defaults to 0x00.
+        """
         if bus is None:
             self.bus = can.Bus(context=DEFAULT_INTERFACE)
         else:
             self.bus = bus
         self.arb_id_request = arb_id_request
         self.arb_id_response = arb_id_response
-        # Controls optional padding of SF messages and the last CF frame in multi-frame messages
-        # Disabled padding is _not_ part of ISO-15765-2, but might prove useful for testing against some targets
         self.padding_value = padding_value
         if padding_value is None:
             self.padding_enabled = False
@@ -63,31 +68,35 @@ class IsoTp:
 
     def _set_filters(self, filters):
         """
-        Sets filters for the CAN bus - description can be found at
-        https://python-can.readthedocs.io/en/stable/bus.html#can.BusABC.set_filters
+        Sets filters for the CAN bus to specify which messages should be received based on arbitration IDs.
 
-        :param filters: dict specifying "can_id", "can_mask" and (optional) "extended" flag
-        :return: None
+        :param filters: A list of dictionaries, each containing a 'can_id' and 'can_mask', with an optional
+                        'extended' flag to indicate filtering for extended arbitration IDs.
         """
         self.bus.set_filters(filters)
 
     def set_filter_single_arbitration_id(self, arbitration_id):
-        """Set a filter to only receive incoming messages on 'arbitration_id'"""
+        """
+        Applies a single filter for the CAN bus to allow receiving messages that match the specified arbitration ID.
+
+        :param arbitration_id: The arbitration ID for which messages should be received.
+        """
         arbitration_id_filter = [{"can_id": arbitration_id, "can_mask": ARBITRATION_ID_MAX_EXTENDED}]
         self._set_filters(arbitration_id_filter)
 
     def clear_filters(self):
-        """Remove arbitration ID filters"""
+        """
+        Clears all previously set filters on the CAN bus.
+        """
         self._set_filters(None)
 
     def send_message(self, data, arbitration_id, force_extended=False):
         """
-        Transmits a message using 'arbitration_id' and 'data' on 'self.bus'
+        Sends a CAN message with specified data, arbitration ID, and optionally forces extended arbitration ID format.
 
-        :param data: Data to send
-        :param arbitration_id: Arbitration ID to use
-        :param force_extended: Force extended arbitration ID
-        :return: None
+        :param data: The data bytes of the CAN message to be sent.
+        :param arbitration_id: The arbitration ID to use for the message.
+        :param force_extended: If True, the arbitration ID is treated as an extended ID.
         """
         is_extended = force_extended or arbitration_id > ARBITRATION_ID_MAX
         msg = can.Message(arbitration_id=arbitration_id, data=data, is_extended_id=is_extended)
@@ -95,11 +104,10 @@ class IsoTp:
 
     def decode_sf(self, frame):
         """
-        Decodes a singe frame (SF) message
+        Decodes a single frame (SF) to obtain its data and length.
 
-        :param frame: Frame to decode
-        :return: Tuple of single frame data length (SF_DL) and data if valid,
-                 Tuple of None, None otherwise
+        :param frame: The bytes of the SF frame to decode.
+        :return: A tuple of single frame data length (SF_DL) and the data payload if valid, None otherwise.
         """
         if len(frame) >= self.SF_PCI_LENGTH:
             sf_dl = frame[0] & 0xF
@@ -110,11 +118,10 @@ class IsoTp:
 
     def decode_ff(self, frame):
         """
-        Decodes a first frame (FF) message
+        Decodes a first frame (FF) to obtain its length and starting data portion.
 
-        :param frame: Frame to decode
-        :return: Tuple of first frame data length (FF_DL) and data if valid,
-                 Tuple of None, None otherwise
+        :param frame: The bytes of the FF frame to decode.
+        :return: A tuple of first frame data length (FF_DL) and the initial data payload if valid, None otherwise.
         """
         if len(frame) >= self.FF_PCI_LENGTH:
             ff_dl = ((frame[0] & 0xF) << 8) | frame[1]
@@ -125,11 +132,10 @@ class IsoTp:
 
     def decode_cf(self, frame):
         """
-        Decodes a consecutive frame (CF) message
+        Decodes a consecutive frame (CF) to obtain the next sequence of data.
 
-        :param frame: Frame to decode
-        :return: Tuple of sequence number (SN) and data if valid,
-                 Tuple of None, None otherwise
+        :param frame: The bytes of the CF frame to decode.
+        :return: A tuple of sequence number (SN) and the data payload if valid, None otherwise.
         """
         if len(frame) >= self.CF_PCI_LENGTH:
             sn = frame[0] & 0xF
@@ -140,11 +146,11 @@ class IsoTp:
 
     def decode_fc(self, frame):
         """
-        Decodes a flow control (FC) frame
+        Decodes a flow control (FC) frame to obtain flow status, block size, and minimum separation time.
 
-        :param frame: Frame to decode
-        :return: Tuple of values flow status (FS), block size (BS) and separation time minimum (STmin) if valid,
-                 Tuple of None, None, None otherwise
+        :param frame: The bytes of the FC frame to decode.
+        :return: A tuple of flow status (FS), block size (BS), and minimum separation time (STmin) if valid,
+                 None otherwise.
         """
         if len(frame) >= self.FC_PCI_LENGTH:
             fs = frame[0] & 0xF
@@ -156,43 +162,41 @@ class IsoTp:
 
     def encode_fc(self, flow_status, block_size, st_min):
         """
-        Encodes a flow control (FC) message
+        Encodes a flow control (FC) message with the specified parameters.
 
-        :param flow_status: Flow status (FS)
-        :param block_size: Block size (BS)
-        :param st_min: Separation time minimum (STmin)
-        :return: Encoded data for the flow control message
+        :param flow_status: The flow status to set in the FC message.
+        :param block_size: The block size to set, indicating how many frames may be sent before waiting for another FC.
+        :param st_min: The minimum separation time between frames.
+        :return: A list of bytes representing the encoded FC message.
         """
         return [(self.FC_FRAME_ID << 4) | flow_status, block_size, st_min, 0, 0, 0, 0, 0]
 
     def send_request(self, message):
         """
-        Wrapper for sending 'message' as a request
+        Sends a message as a request, processing it into frames as necessary according to ISO-TP.
 
-        :param message: The message to send
-        :return: None
+        :param message: The message data to be sent as a request.
         """
         frames = self.get_frames_from_message(message, padding_value=self.padding_value)
         self.transmit(frames, self.arb_id_request, self.arb_id_response)
 
     def send_response(self, message):
         """
-        Wrapper for sending 'message' as a response
+        Sends a message as a response, processing it into frames as necessary according to ISO-TP.
 
-        :param message: The message to send
-        :return: None
+        :param message: The message data to be sent as a response.
         """
         frames = self.get_frames_from_message(message, padding_value=self.padding_value)
         self.transmit(frames, self.arb_id_response, self.arb_id_request)
 
     def indication(self, wait_window=None, trim_padding=True, first_frame_only=False):
         """
-        Receives an ISO-15765-2 message (one or more frames) and returns its content.
+        Receives a multi-frame ISO-TP message, processing each frame to reconstruct the full message data.
 
-        :param wait_window: Max time (in seconds) to wait before timeout
-        :param trim_padding: If True, removes message padding bytes from the received message
-        :param first_frame_only: If True, return first frame only (simulating overflow behavior for multi-frame message)
-        :return: A list of received data bytes if successful, None otherwise
+        :param wait_window: Maximum time in seconds to wait for all frames before giving up.
+        :param trim_padding: If True, padding bytes are removed from the message data.
+        :param first_frame_only: If True, simulates an overflow condition by only retrieving the first frame.
+        :return: A list of bytes representing the received message data, or None if a timeout occurs.
         """
         message = []
 
@@ -266,12 +270,11 @@ class IsoTp:
 
     def transmit(self, frames, arbitration_id, arbitration_id_flow_control):
         """
-        Transmits 'frames' in order on the bus, according to ISO-15765-2
+        Transmits a sequence of frames as a single ISO-TP message, handling flow control for multi-frame messages.
 
-        :param frames: List of frames (which are in turn lists of values) to send
-        :param arbitration_id: The arbitration ID used for sending
-        :param arbitration_id_flow_control: The arbitration ID used for receiving flow control (FC)
-        :return: None
+        :param frames: A list of frames to transmit as part of the message.
+        :param arbitration_id: The arbitration ID to use for transmitting the frames.
+        :param arbitration_id_flow_control: The arbitration ID expected for receiving flow control frames.
         """
         if len(frames) == 0:
             # No data to send
@@ -335,10 +338,11 @@ class IsoTp:
     @staticmethod
     def get_frames_from_message(message, padding_value=0x00):
         """
-        Returns a copy of 'message' split into frames,
-        :param message: Message to split
-        :param padding_value: Integer value used to pad messages, or None to disable padding (not part of ISO-15765-3)
-        :return: List of frames
+        Splits a given message into frames suitable for transmission over CAN using the ISO-TP protocol.
+
+        :param message: The message data to be split into frames.
+        :param padding_value: The byte value to use for padding frames, if padding is enabled.
+        :return: A list of frames, each a list of bytes ready for transmission.
         """
         if padding_value is None:
             padding_enabled = False

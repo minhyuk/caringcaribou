@@ -9,17 +9,19 @@ import datetime
 
 def initiate_dump(handler, whitelist, separator_seconds, candump_format):
     """
-    Runs the 'handler' function on all incoming CAN messages.
+    Initializes the process for dumping CAN bus traffic based on specified filters and formats.
 
-    Filtering is controlled by the list 'args.whitelist'
-    A separator is printed between messages if no messages have been handled in float 'args.separator_seconds'
+    It continuously listens for CAN messages, processes them based on the given parameters, 
+    and applies a specific handler function to each message. A time-based separator can be 
+    used to visually distinguish periods of message inactivity.
 
-    :param handler: function to call on all incoming messages
-    :param whitelist: list of allowed arbitration IDs, or None to allow all
-    :param separator_seconds: float seconds before printing a separator between messages, or None to never do this
-    :param candump_format: bool indicating whether messages should be passed to 'handler' in candump str format
+    :param handler: A callback function that defines how each CAN message is handled.
+    :param whitelist: A list of message IDs that should be processed. If empty, all messages are processed.
+    :param separator_seconds: The time in seconds to wait before printing a separator 
+                              to indicate a break in message traffic. If None, no separator is used.
+    :param candump_format: A boolean that determines whether messages should be formatted 
+                           according to the candump tool's output format.
     """
-
     if candump_format:
         format_func = msg_to_candump_format
     else:
@@ -46,10 +48,14 @@ def initiate_dump(handler, whitelist, separator_seconds, candump_format):
 
 def parse_args(args):
     """
-    Argument parser for the dump module.
+    Parses the arguments provided to the script and returns them as a structured namespace.
 
-    :param args: List of arguments
-    :return: Argument namespace
+    This function is responsible for interpreting the command line arguments passed to the 
+    dump module. It defines how the script is run and what parameters it expects, such as output 
+    file location, message filtering options, and display formatting.
+
+    :param args: The list of arguments passed to the script from the command line.
+    :return: An argparse.Namespace object containing the parsed arguments.
     """
     parser = argparse.ArgumentParser(prog="cc.py dump",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -82,13 +88,17 @@ def parse_args(args):
 
 def file_header():
     """
-    Returns an output file header string, consisting of a number of comment lines.
+    Constructs and returns a header string for the output file.
 
-    :return: str header
+    This header includes the tool name, current date and time, 
+    and the command line arguments used to run the dump. It's intended to provide
+    context and metadata about a dump file when reviewing its contents later.
+
+    :return: A formatted string that serves as the header for the dump file.
     """
     argument_str = " ".join(argv)
     lines = ["Caring Caribou dump file",
-             datetime.datetime.now(),
+             str(datetime.datetime.now()),
              argument_str]
     header = "".join(["{0} {1}\n".format(FILE_LINE_COMMENT_PREFIX, line) for line in lines])
     return header
@@ -96,9 +106,13 @@ def file_header():
 
 def module_main(args):
     """
-    Dump module main wrapper.
+    The main entry point for the dump module.
 
-    :param args: List of module arguments
+    This function orchestrates the overall process of dumping CAN messages based on 
+    the provided command line arguments. It setup the conditions for message collection 
+    such as output formatting, message filtering, and whether to dump to stdout or a file.
+
+    :param args: List of arguments passed to the module from the command line.
     """
     args = parse_args(args)
     separator_seconds = args.separator_seconds
@@ -129,3 +143,4 @@ def module_main(args):
                 initiate_dump(write_line_to_file, whitelist, separator_seconds, candump_format)
         except IOError as e:
             print("IOError: {0}".format(e))
+

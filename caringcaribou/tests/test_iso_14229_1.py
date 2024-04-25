@@ -13,6 +13,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
     ARB_ID_RESPONSE = 0x200D
 
     def setUp(self):
+        """
+        Sets up environment before each test. It initializes mock ECU, sets up virtual CAN bus and diagnostics on top of ISO-TP.
+        """
         # Initialize mock ECU
         self.ecu = MockEcuIso14229(self.ARB_ID_REQUEST, self.ARB_ID_RESPONSE)
         self.ecu.start_server()
@@ -25,6 +28,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.diagnostics.P3_CLIENT = 0.5
 
     def tearDown(self):
+        """
+        Cleans up environment after each test. This method ensures that every initialized component is properly shut down.
+        """
         if isinstance(self.ecu, MockEcuIso14229):
             self.ecu.__exit__(None, None, None)
         if isinstance(self.diagnostics, iso14229_1.Iso14229_1):
@@ -34,7 +40,7 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
 
     def verify_positive_response(self, service_id, response, expected_data):
         """
-        Verifies that 'response' is a valid positive response for 'service_id' with a payload matching 'expected_data'
+        Verifies that 'response' is a valid positive response for 'service_id' with a payload matching 'expected_data'.
 
         :param service_id: Service ID (SIDRQ) of the request
         :param response: Response data
@@ -54,7 +60,7 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
 
     def verify_negative_response(self, service_id, response, expected_nrc):
         """
-        Verifies that 'response' is a valid negative response for 'service_id' matching 'expected_nrc'
+        Verifies that 'response' is a valid negative response for 'service_id' matching 'expected_nrc'.
 
         :param service_id: Service ID (SIDRQ) of the request
         :param response: Response data
@@ -70,9 +76,15 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.assertEqual(response_nrc, expected_nrc, "NRC of response does not match expected value")
 
     def test_create_iso_14229_1(self):
+        """
+        Tests the initialization of the ISO-14229-1 diagnostic instance.
+        """
         self.assertIsInstance(self.diagnostics, iso14229_1.Iso14229_1, "Failed to initialize ISO-14229-1")
 
     def test_read_data_by_identifier_success(self):
+        """
+        Tests successful read data by identifier service execution.
+        """
         service_id = iso14229_1.ServiceID.READ_DATA_BY_IDENTIFIER
         identifier = [MockEcuIso14229.IDENTIFIER_REQUEST_POSITIVE]
         expected_response = [MockEcuIso14229.IDENTIFIER_REQUEST_POSITIVE_RESPONSE]
@@ -80,6 +92,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_positive_response(service_id, result, expected_response)
 
     def test_read_data_by_identifier_failure(self):
+        """
+        Tests failed read data by identifier service execution due to negative condition.
+        """
         service_id = iso14229_1.ServiceID.READ_DATA_BY_IDENTIFIER
         identifier = [MockEcuIso14229.IDENTIFIER_REQUEST_NEGATIVE]
         expected_nrc = iso14229_1.NegativeResponseCodes.CONDITIONS_NOT_CORRECT
@@ -87,6 +102,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_negative_response(service_id, result, expected_nrc)
 
     def test_write_data_by_identifier_success(self):
+        """
+        Tests successful write data by identifier service execution.
+        """
         service_id = iso14229_1.ServiceID.WRITE_DATA_BY_IDENTIFIER
         request_identifier = MockEcuIso14229.REQUEST_IDENTIFIER_VALID
         request_data = MockEcuIso14229.REQUEST_VALUE
@@ -96,6 +114,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_positive_response(service_id, result, expected_response)
 
     def test_write_data_by_identifier_failure(self):
+        """
+        Tests failed write data by identifier service execution due to negative condition.
+        """
         service_id = iso14229_1.ServiceID.WRITE_DATA_BY_IDENTIFIER
         request_identifier = MockEcuIso14229.REQUEST_IDENTIFIER_INVALID
         request_data = MockEcuIso14229.REQUEST_VALUE
@@ -105,6 +126,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_negative_response(service_id, result, expected_nrc)
 
     def test_read_memory_by_address_success(self):
+        """
+        Tests successful read memory by address service execution.
+        """
         service_id = iso14229_1.ServiceID.READ_MEMORY_BY_ADDRESS
         length_and_format = MockEcuIso14229.REQUEST_ADDRESS_LENGTH_AND_FORMAT
         start_address = MockEcuIso14229.REQUEST_ADDRESS
@@ -117,6 +141,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_positive_response(service_id, result, expected_response)
 
     def test_read_memory_by_address_failure_on_invalid_length(self):
+        """
+        Tests failure of read memory by address service execution due to requesting out of range memory.
+        """
         service_id = iso14229_1.ServiceID.READ_MEMORY_BY_ADDRESS
         expected_nrc = iso14229_1.NegativeResponseCodes.REQUEST_OUT_OF_RANGE
         length_and_format = MockEcuIso14229.REQUEST_ADDRESS_LENGTH_AND_FORMAT
@@ -129,6 +156,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_negative_response(service_id, result, expected_nrc)
 
     def test_ecu_reset_success(self):
+        """
+        Tests successful ECU reset service execution.
+        """
         service_id = iso14229_1.ServiceID.ECU_RESET
         reset_type = iso14229_1.Services.EcuReset.ResetType.HARD_RESET
         expected_response = [reset_type]
@@ -136,6 +166,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_positive_response(service_id, result, expected_response)
 
     def test_ecu_reset_failure_on_invalid_reset_type(self):
+        """
+        Tests failure of the ECU reset service execution due to using an unsupported reset type.
+        """
         service_id = iso14229_1.ServiceID.ECU_RESET
         expected_nrc = iso14229_1.NegativeResponseCodes.SUB_FUNCTION_NOT_SUPPORTED
         # This reset type is ISO SAE Reserved and thus an invalid value
@@ -144,6 +177,9 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.verify_negative_response(service_id, result, expected_nrc)
 
     def test_ecu_reset_success_suppress_positive_response(self):
+        """
+        Tests successful ECU reset service execution with suppression of the positive response.
+        """
         reset_type = iso14229_1.Services.EcuReset.ResetType.SOFT_RESET
         # Suppress positive response
         reset_type |= 0x80
@@ -151,9 +187,13 @@ class DiagnosticsOverIsoTpTestCase(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_ecu_reset_failure_suppress_positive_response(self):
+        """
+        Tests failure of the ECU reset service execution with suppression of the positive response due to unsupported reset type.
+        """
         service_id = iso14229_1.ServiceID.ECU_RESET
         expected_nrc = iso14229_1.NegativeResponseCodes.SUB_FUNCTION_NOT_SUPPORTED
         # ISO SAE Reserved reset type 0x00, with suppress positive response bit set
         reset_type = 0x80
         result = self.diagnostics.ecu_reset(reset_type=reset_type)
         self.verify_negative_response(service_id, result, expected_nrc)
+
